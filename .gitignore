@@ -39,6 +39,11 @@ Thumbs.db
 .replit
 *.sqlite
 *.sqlite-journal
+# Ignore replit and local state files
+.local/
+.replit
+*.bin
+*.log
 
 # Typescript cache
 *.tsbuildinfo
