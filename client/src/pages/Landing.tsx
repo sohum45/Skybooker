@@ -7,10 +7,6 @@ import { Plane, MapPin, Calculator, Clock } from "lucide-react";
 export default function Landing() {
   const { isAuthenticated } = useAuth();
 
-  if (isAuthenticated) {
-    return <Link href="/search" replace />;
-  }
-
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -32,11 +28,6 @@ export default function Landing() {
               <Link href="/login">
                 <Button size="lg" className="bg-white text-primary-600 hover:bg-gray-100" data-testid="button-get-started">
                   Get Started
-                </Button>
-              </Link>
-              <Link href="/search">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-primary-600" data-testid="button-search-flights">
-                  Search Flights
                 </Button>
               </Link>
             </div>

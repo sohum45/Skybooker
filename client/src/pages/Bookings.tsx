@@ -8,12 +8,15 @@ import { socketService } from "@/lib/socket";
 import { Booking } from "@/types";
 import { CheckCircle, FileText, Download, Calendar, Plane } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/api";  // ✅ added import
 
 export default function BookingsPage() {
   const { toast } = useToast();
 
+  // ✅ Fixed query: fetch bookings from API
   const { data: bookings = [], isLoading } = useQuery<Booking[]>({
-    queryKey: ["/api/bookings"],
+    queryKey: ["bookings"],
+    queryFn: () => apiRequest("get", "/bookings"),
   });
 
   useEffect(() => {
@@ -79,7 +82,11 @@ export default function BookingsPage() {
         // Booking Cards
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {bookings.map((booking) => (
-            <Card key={booking.id} className="hover:shadow-lg transition-shadow" data-testid={`booking-card-${booking.pnr}`}>
+            <Card
+              key={booking.id}
+              className="hover:shadow-lg transition-shadow"
+              data-testid={`booking-card-${booking.pnr}`}
+            >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
@@ -87,15 +94,22 @@ export default function BookingsPage() {
                       <CheckCircle className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900" data-testid={`text-pnr-${booking.pnr}`}>
+                      <h3
+                        className="font-semibold text-gray-900"
+                        data-testid={`text-pnr-${booking.pnr}`}
+                      >
                         PNR: {booking.pnr}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        Booked on {new Date(booking.createdAt).toLocaleDateString()}
+                        Booked on{" "}
+                        {new Date(booking.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-100 text-green-800"
+                  >
                     Confirmed
                   </Badge>
                 </div>
@@ -103,7 +117,10 @@ export default function BookingsPage() {
                 <div className="space-y-3 mb-4">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Route</span>
-                    <span className="font-medium" data-testid={`text-route-${booking.pnr}`}>
+                    <span
+                      className="font-medium"
+                      data-testid={`text-route-${booking.pnr}`}
+                    >
                       {booking.path.join(" → ")}
                     </span>
                   </div>
@@ -113,22 +130,25 @@ export default function BookingsPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Paid</span>
-                    <span className="font-medium text-primary-600" data-testid={`text-total-${booking.pnr}`}>
+                    <span
+                      className="font-medium text-primary-600"
+                      data-testid={`text-total-${booking.pnr}`}
+                    >
                       ₹{booking.total.toLocaleString()}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex space-x-3">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="flex-1"
                     data-testid={`button-view-details-${booking.pnr}`}
                   >
                     <FileText className="w-4 h-4 mr-2" />
                     View Details
                   </Button>
-                  <Button 
+                  <Button
                     className="flex-1"
                     data-testid={`button-download-ticket-${booking.pnr}`}
                   >
@@ -145,12 +165,17 @@ export default function BookingsPage() {
       {/* Recent Activity */}
       {bookings.length > 0 && (
         <div className="mt-12">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Activity</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            Recent Activity
+          </h2>
           <Card>
             <CardContent className="p-6">
               <div className="space-y-4">
                 {bookings.slice(0, 3).map((booking) => (
-                  <div key={booking.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                  <div
+                    key={booking.id}
+                    className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg"
+                  >
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                       <Calendar className="w-4 h-4 text-green-600" />
                     </div>
@@ -159,7 +184,8 @@ export default function BookingsPage() {
                         Booking confirmed for {booking.path.join(" → ")}
                       </p>
                       <p className="text-sm text-gray-600">
-                        PNR: {booking.pnr} • {new Date(booking.createdAt).toLocaleDateString()}
+                        PNR: {booking.pnr} •{" "}
+                        {new Date(booking.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-sm font-medium text-gray-900">

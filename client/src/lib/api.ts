@@ -8,9 +8,9 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Token management
-let accessToken: string | null = localStorage.getItem("accessToken");
-let refreshToken: string | null = localStorage.getItem("refreshToken");
+// In-memory token storage (since localStorage is not supported in Claude.ai artifacts)
+let accessToken: string | null = null;
+let refreshToken: string | null = null;
 
 // Request interceptor to add auth header
 api.interceptors.request.use((config) => {
@@ -37,7 +37,6 @@ api.interceptors.response.use(
 
         const { accessToken: newAccessToken } = response.data;
         accessToken = newAccessToken;
-        localStorage.setItem("accessToken", newAccessToken);
 
         // Retry original request
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -58,15 +57,13 @@ api.interceptors.response.use(
 export function setTokens(access: string, refresh: string) {
   accessToken = access;
   refreshToken = refresh;
-  localStorage.setItem("accessToken", access);
-  localStorage.setItem("refreshToken", refresh);
+  console.log("Tokens set in memory (localStorage not available in this environment)");
 }
 
 export function logout() {
   accessToken = null;
   refreshToken = null;
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
+  console.log("Tokens cleared from memory");
 }
 
 export function getAccessToken() {
@@ -85,4 +82,18 @@ export async function apiRequest(
     data,
   });
   return response.data;
+}
+
+export async function searchAirports(query: string) {
+  return apiRequest("GET", `/airports/search?q=${encodeURIComponent(query)}`);
+}
+
+// Get airports near a location (lat, lon, radius in km)
+export async function airportsByLocation(lat: number, lon: number, radius: number = 100) {
+  return apiRequest("GET", `/airports/location?lat=${lat}&lon=${lon}&radius=${radius}`);
+}
+
+// Get detailed airport info by ICAO/IATA code
+export async function airportByCode(code: string) {
+  return apiRequest("GET", `/airports/code/${code}`);
 }

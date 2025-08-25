@@ -1,6 +1,41 @@
-import { storage } from "../storage";
-import { haversineKm } from "../utils/haversine";
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
+console.log('Step 1: Starting script');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const rootDir = join(__dirname, '..', '..');
+dotenv.config({ path: join(rootDir, '.env') });
+console.log('Step 2: Environment loaded');
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+
+let storage, haversineKm;
+
+console.log('Step 3: About to import modules');
+try {
+  const storageModule = await import("../storage.js");
+  storage = storageModule.storage;
+  console.log('Step 4: Storage imported');
+  
+  const haversineModule = await import("../utils/haversine.js");
+  haversineKm = haversineModule.haversineKm;
+  console.log('Step 5: Haversine imported');
+} catch (error) {
+  console.error('Import error:', error);
+  process.exit(1);
+}
+
+console.log('Step 6: Testing database connection');
+try {
+  const airports = await storage.getAllAirports();
+  console.log('Step 7: Database connected, found', airports.length, 'airports');
+} catch (error) {
+  console.error('Database connection error:', error);
+  process.exit(1);
+}
+
+console.log('Step 8: About to seed airports');
 const airports = [
   { code: "DEL", name: "Indira Gandhi Intl", city: "Delhi", country: "India", lat: 28.556, lon: 77.100 },
   { code: "BOM", name: "Chhatrapati Shivaji", city: "Mumbai", country: "India", lat: 19.089, lon: 72.865 },
@@ -14,69 +49,81 @@ const airports = [
   { code: "COK", name: "Cochin Intl", city: "Kochi", country: "India", lat: 10.15, lon: 76.40 }
 ];
 
-const routePairs = [
-  ["DEL", "BOM"],
-  ["DEL", "BLR"],
-  ["DEL", "CCU"],
-  ["BOM", "GOI"],
-  ["BOM", "PNQ"],
-  ["BOM", "AMD"],
-  ["BLR", "MAA"],
-  ["BLR", "HYD"],
-  ["HYD", "MAA"],
-  ["CCU", "MAA"],
-  ["MAA", "COK"],
-];
-
-export async function seedDatabase() {
-  console.log("Seeding airports...");
-  
-  // Seed airports
-  for (const airport of airports) {
-    try {
-      await storage.createAirport(airport);
-      console.log(`Created airport: ${airport.code} - ${airport.name}`);
-    } catch (error) {
-      console.log(`Airport ${airport.code} already exists or error occurred`);
+// Create airports
+for (const airport of airports) {
+  try {
+    console.log('Creating airport:', airport.code);
+    await storage.createAirport(airport);
+    console.log('Created airport:', airport.code);
+  } catch (error: any) {
+    if (error.code === '23505') {
+      console.log('Airport already exists:', airport.code);
+    } else {
+      console.error('Error creating airport:', error);
     }
   }
+}
 
-  console.log("Seeding routes...");
+console.log('Step 9: Creating flight routes');
+
+// Create a map of airports for easy lookup
+const airportMap = new Map(airports.map(a => [a.code, a]));
+
+// Define major routes between Indian cities
+const routes = [
+  // Delhi connections
+  ["DEL", "BOM"], ["DEL", "BLR"], ["DEL", "HYD"], ["DEL", "MAA"], 
+  ["DEL", "CCU"], ["DEL", "PNQ"], ["DEL", "AMD"], ["DEL", "COK"],
   
-  // Seed routes
-  const airportMap = new Map(airports.map(a => [a.code, a]));
+  // Mumbai connections  
+  ["BOM", "BLR"], ["BOM", "HYD"], ["BOM", "MAA"], ["BOM", "CCU"],
+  ["BOM", "PNQ"], ["BOM", "GOI"], ["BOM", "AMD"], ["BOM", "COK"],
   
-  for (const [from, to] of routePairs) {
-    const fromAirport = airportMap.get(from);
-    const toAirport = airportMap.get(to);
+  // Bangalore connections
+  ["BLR", "HYD"], ["BLR", "MAA"], ["BLR", "CCU"], ["BLR", "COK"],
+  ["BLR", "GOI"], 
+  
+  // Hyderabad connections
+  ["HYD", "MAA"], ["HYD", "CCU"], ["HYD", "COK"],
+  
+  // Chennai connections
+  ["MAA", "CCU"], ["MAA", "COK"],
+  
+  // Other connections
+  ["CCU", "COK"], ["PNQ", "GOI"], ["AMD", "COK"]
+];
+
+for (const [from, to] of routes) {
+  const fromAirport = airportMap.get(from);
+  const toAirport = airportMap.get(to);
+  
+  if (fromAirport && toAirport) {
+    const distance = haversineKm(
+      fromAirport.lat, fromAirport.lon,
+      toAirport.lat, toAirport.lon
+    );
     
-    if (fromAirport && toAirport) {
-      const distance = haversineKm(fromAirport, toAirport);
-      
+    // Create bidirectional routes
+    for (const [source, dest] of [[from, to], [to, from]]) {
       try {
+        console.log(`Creating route: ${source} → ${dest} (${Math.round(distance)} km)`);
         await storage.createRoute({
-          from,
-          to,
-          distanceKm: Math.round(distance),
-          active: true,
+          from: source,
+          to: dest,
+          distanceKm: distance,
+          active: true
         });
-        console.log(`Created route: ${from} → ${to} (${Math.round(distance)} km)`);
-      } catch (error) {
-        console.log(`Route ${from} → ${to} already exists or error occurred`);
+        console.log(`Created route: ${source} → ${dest}`);
+      } catch (error: any) {
+        if (error.code === '23505') {
+          console.log(`Route already exists: ${source} → ${dest}`);
+        } else {
+          console.error(`Error creating route ${source} → ${dest}:`, error);
+        }
       }
     }
   }
-
-  console.log("Database seeding completed!");
 }
 
-// Run seed if called directly
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  seedDatabase().catch(console.error);
-}
+console.log('Step 10: Seeding complete');
+process.exit(0);

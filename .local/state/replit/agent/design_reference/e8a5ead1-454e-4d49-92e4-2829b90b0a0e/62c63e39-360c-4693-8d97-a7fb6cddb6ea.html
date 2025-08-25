@@ -1,0 +1,1071 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirConnect - Flight Booking System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a'
+                        },
+                        sky: {
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .leaflet-container { height: 400px; width: 100%; }
+        .gradient-bg { background: linear-gradient(135deg, #1e40af 0%, #0ea5e9 100%); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
+                            <span class="text-white font-bold text-sm">AC</span>
+                        </div>
+                        <span class="text-xl font-bold text-gray-900">AirConnect</span>
+                    </div>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-8">
+                    <button onclick="showPage('search')" class="nav-link text-gray-700 hover:text-primary-600 px-3 py-2 font-medium">Search Flights</button>
+                    <button onclick="showPage('bookings')" class="nav-link text-gray-700 hover:text-primary-600 px-3 py-2 font-medium">My Bookings</button>
+                    <button onclick="showPage('admin')" class="nav-link text-gray-700 hover:text-primary-600 px-3 py-2 font-medium">Admin</button>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="hidden md:flex items-center space-x-2 text-sm text-gray-600">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span>Live Updates Active</span>
+                    </div>
+                    <button onclick="showPage('auth')" class="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                        Sign In
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Auth Page -->
+    <div id="auth-page" class="page hidden">
+        <div class="min-h-screen gradient-bg flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-md w-full space-y-8">
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <div class="text-center">
+                        <div class="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span class="text-white font-bold text-xl">AC</span>
+                        </div>
+                        <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome to AirConnect</h2>
+                        <p class="text-gray-600">Sign in to book your next flight</p>
+                    </div>
+
+                    <div class="mt-8">
+                        <div class="flex bg-gray-100 rounded-lg p-1 mb-6">
+                            <button class="auth-tab flex-1 py-2 px-4 text-sm font-medium rounded-md bg-white text-primary-600 shadow-sm" data-tab="login">
+                                Sign In
+                            </button>
+                            <button class="auth-tab flex-1 py-2 px-4 text-sm font-medium rounded-md text-gray-500" data-tab="register">
+                                Register
+                            </button>
+                        </div>
+
+                        <!-- Login Form -->
+                        <form id="login-form" class="auth-form space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email address</label>
+                                <input type="email" data-mock="true" placeholder="john.doe@example.com" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                                <input type="password" data-mock="true" placeholder="••••••••" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors">
+                            </div>
+                            <button type="button" onclick="showPage('search')" class="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                                Sign In
+                            </button>
+                        </form>
+
+                        <!-- Register Form -->
+                        <form id="register-form" class="auth-form space-y-6 hidden">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                                <input type="text" data-mock="true" placeholder="John Doe" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email address</label>
+                                <input type="email" data-mock="true" placeholder="john.doe@example.com" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                                <input type="password" data-mock="true" placeholder="••••••••" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                                <input type="password" data-mock="true" placeholder="••••••••" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors">
+                            </div>
+                            <button type="button" onclick="showPage('search')" class="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                                Create Account
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Page -->
+    <div id="search-page" class="page">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Hero Section -->
+            <div class="gradient-bg rounded-3xl p-8 mb-8 text-white">
+                <div class="max-w-4xl">
+                    <h1 class="text-4xl md:text-5xl font-bold mb-4">Find Your Perfect Flight</h1>
+                    <p class="text-xl text-blue-100 mb-8">Advanced route optimization with real-time pricing</p>
+                    
+                    <!-- Search Form -->
+                    <div class="bg-white rounded-2xl p-6 text-gray-900">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                            <!-- @COMPONENT: AirportSearch [from] -->
+                            <div class="lg:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">From</label>
+                                <div class="relative">
+                                    <input type="text" data-mock="true" placeholder="Delhi (DEL)" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent pr-10">
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <!-- Airport suggestions dropdown -->
+                                <div class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg hidden">
+                                    <div class="p-2 hover:bg-gray-50 cursor-pointer border-b">Delhi (DEL) - Indira Gandhi International</div>
+                                    <div class="p-2 hover:bg-gray-50 cursor-pointer border-b">Dehradun (DED) - Jolly Grant Airport</div>
+                                    <div class="p-2 hover:bg-gray-50 cursor-pointer">Dharamshala (DHM) - Gaggal Airport</div>
+                                </div>
+                            </div>
+                            <!-- @END_COMPONENT: AirportSearch -->
+
+                            <!-- @COMPONENT: AirportSearch [to] -->
+                            <div class="lg:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">To</label>
+                                <div class="relative">
+                                    <input type="text" data-mock="true" placeholder="Mumbai (BOM)" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent pr-10">
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- @END_COMPONENT: AirportSearch -->
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Algorithm</label>
+                                <select data-mock="true" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                    <option value="dijkstra">Dijkstra (Shortest)</option>
+                                    <option value="astar">A* (Optimized)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex justify-center">
+                            <button onclick="showRouteResults()" class="bg-primary-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                                <span>Search Flights</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="search-results" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Map Section -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-2xl shadow-sm p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-xl font-semibold text-gray-900">Route Visualization</h3>
+                                <div class="flex items-center space-x-2 text-sm text-gray-600">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span>Route: DEL → BOM (1,138 km)</span>
+                                </div>
+                            </div>
+                            <!-- @COMPONENT: RouteMap [airports, path] -->
+                            <div id="route-map" class="h-96 rounded-xl border border-gray-200"></div>
+                            <!-- @END_COMPONENT: RouteMap -->
+                            
+                            <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+                                <div class="flex items-center space-x-2 text-sm text-blue-800">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <span><strong>Algorithm:</strong> Dijkstra's shortest path • <strong>Distance:</strong> 1,138 km • <strong>Flight Time:</strong> ~2h 15m</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Flight Options -->
+                    <div class="space-y-4">
+                        <h3 class="text-xl font-semibold text-gray-900">Available Flights</h3>
+                        
+                        <!-- @MAP: offers.map(offer => ( -->
+                        <!-- Saver Class -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900">Saver</h4>
+                                        <p class="text-sm text-gray-600">Basic fare</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-2xl font-bold text-gray-900" data-bind="offer.totalFare">₹4,250</div>
+                                    <div class="text-sm text-gray-500">per person</div>
+                                </div>
+                            </div>
+                            
+                            <!-- @COMPONENT: PriceBreakdown [fareBreakdown] -->
+                            <div class="space-y-2 text-sm border-t pt-4">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Base fare</span>
+                                    <span data-bind="fareBreakdown.base">₹1,500</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Fuel charges</span>
+                                    <span data-bind="fareBreakdown.fuel">₹1,840</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Taxes & fees</span>
+                                    <span data-bind="fareBreakdown.taxes">₹910</span>
+                                </div>
+                                <div class="flex justify-between font-semibold pt-2 border-t">
+                                    <span>Total</span>
+                                    <span data-bind="offer.totalFare">₹4,250</span>
+                                </div>
+                            </div>
+                            <!-- @END_COMPONENT: PriceBreakdown -->
+                            
+                            <button onclick="showOffers()" class="w-full mt-4 bg-primary-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                                Select Flight
+                            </button>
+                        </div>
+
+                        <!-- Standard Class -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900">Standard</h4>
+                                        <p class="text-sm text-gray-600">Popular choice</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-2xl font-bold text-gray-900">₹4,725</div>
+                                    <div class="text-sm text-gray-500">per person</div>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2 text-sm border-t pt-4">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Base fare</span>
+                                    <span>₹1,500</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Fuel charges</span>
+                                    <span>₹1,840</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Taxes & fees</span>
+                                    <span>₹910</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Standard premium</span>
+                                    <span>₹475</span>
+                                </div>
+                                <div class="flex justify-between font-semibold pt-2 border-t">
+                                    <span>Total</span>
+                                    <span>₹4,725</span>
+                                </div>
+                            </div>
+                            
+                            <button onclick="showOffers()" class="w-full mt-4 bg-primary-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                                Select Flight
+                            </button>
+                        </div>
+
+                        <!-- Flex Class -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900">Flex</h4>
+                                        <p class="text-sm text-gray-600">Full flexibility</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-2xl font-bold text-gray-900">₹5,440</div>
+                                    <div class="text-sm text-gray-500">per person</div>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2 text-sm border-t pt-4">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Base fare</span>
+                                    <span>₹1,500</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Fuel charges</span>
+                                    <span>₹1,840</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Taxes & fees</span>
+                                    <span>₹910</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Flex premium</span>
+                                    <span>₹1,190</span>
+                                </div>
+                                <div class="flex justify-between font-semibold pt-2 border-t">
+                                    <span>Total</span>
+                                    <span>₹5,440</span>
+                                </div>
+                            </div>
+                            
+                            <button onclick="showOffers()" class="w-full mt-4 bg-primary-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                                Select Flight
+                            </button>
+                        </div>
+                        <!-- @END_MAP )) -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offers Page -->
+    <div id="offers-page" class="page hidden">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="mb-8">
+                <button onclick="showPage('search')" class="flex items-center text-primary-600 hover:text-primary-700 mb-4">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Search
+                </button>
+                <h1 class="text-3xl font-bold text-gray-900">Confirm Your Booking</h1>
+                <p class="text-gray-600 mt-2">Delhi (DEL) → Mumbai (BOM) • March 15, 2024</p>
+            </div>
+
+            <!-- Flight Summary -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Flight Summary</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Route</span>
+                            <span class="font-medium">DEL → BOM</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Distance</span>
+                            <span class="font-medium">1,138 km</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Algorithm</span>
+                            <span class="font-medium">Dijkstra (Shortest Path)</span>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Fare Class</span>
+                            <span class="font-medium">Standard</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Flight Time</span>
+                            <span class="font-medium">2h 15m</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Passengers</span>
+                            <span class="font-medium">1 Adult</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Passenger Details -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Passenger Details</h2>
+                <form class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                            <input type="text" data-mock="true" placeholder="John" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                            <input type="text" data-mock="true" placeholder="Doe" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input type="email" data-mock="true" placeholder="john.doe@example.com" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                            <input type="tel" data-mock="true" placeholder="+91 98765 43210" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Price Summary -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Price Breakdown</h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Base fare</span>
+                        <span>₹1,500</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Fuel charges (1,138 km × ₹1.62/km)</span>
+                        <span>₹1,840</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Operations fee (8%)</span>
+                        <span>₹267</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Taxes (18%)</span>
+                        <span>₹643</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Standard class premium</span>
+                        <span>₹475</span>
+                    </div>
+                    <div class="border-t pt-3">
+                        <div class="flex justify-between text-lg font-semibold">
+                            <span>Total Amount</span>
+                            <span class="text-primary-600">₹4,725</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking Actions -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button onclick="showPage('search')" class="flex-1 bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                    Back to Search
+                </button>
+                <button onclick="confirmBooking()" class="flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                    Confirm Booking
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bookings Page -->
+    <div id="bookings-page" class="page hidden">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">My Bookings</h1>
+                <p class="text-gray-600 mt-2">Manage your flight reservations</p>
+            </div>
+
+            <!-- Booking Success Modal (shown after confirmation) -->
+            <div id="booking-success" class="hidden bg-green-50 border border-green-200 rounded-2xl p-6 mb-6">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-green-900">Booking Confirmed!</h3>
+                        <p class="text-green-700">Your ticket has been successfully booked</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg p-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm text-gray-600">PNR</p>
+                            <p class="text-lg font-bold text-gray-900" data-bind="booking.pnr">AC789GH2</p>
+                        </div>
+                        <button class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700">
+                            Download Ticket
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- @MAP: bookings.map(booking => ( -->
+            <!-- Booking Cards -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Active Booking -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900" data-bind="booking.pnr">PNR: AC789GH2</h3>
+                                <p class="text-sm text-gray-600" data-bind="booking.createdAt">Booked on Mar 10, 2024</p>
+                            </div>
+                        </div>
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Confirmed</span>
+                    </div>
+
+                    <div class="space-y-3 mb-4">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Route</span>
+                            <span class="font-medium" data-bind="booking.path">DEL → BOM</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Fare Class</span>
+                            <span class="font-medium">Standard</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Total Paid</span>
+                            <span class="font-medium text-primary-600" data-bind="booking.total">₹4,725</span>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-3">
+                        <button class="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                            View Details
+                        </button>
+                        <button class="flex-1 bg-primary-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                            Download Ticket
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Previous Booking -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">PNR: AC123AB4</h3>
+                                <p class="text-sm text-gray-600">Booked on Feb 28, 2024</p>
+                            </div>
+                        </div>
+                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Completed</span>
+                    </div>
+
+                    <div class="space-y-3 mb-4">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Route</span>
+                            <span class="font-medium">BLR → HYD → DEL</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Fare Class</span>
+                            <span class="font-medium">Saver</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Total Paid</span>
+                            <span class="font-medium text-gray-600">₹6,890</span>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-3">
+                        <button class="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                            View Details
+                        </button>
+                        <button class="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                            Download Receipt
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_MAP )) -->
+
+            <!-- Empty State (if no bookings) -->
+            <div class="hidden text-center py-12">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No bookings yet</h3>
+                <p class="text-gray-600 mb-6">Book your first flight to see it here</p>
+                <button onclick="showPage('search')" class="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                    Search Flights
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Page -->
+    <div id="admin-page" class="page hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p class="text-gray-600 mt-2">Manage global settings and monitor system activity</p>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Users</p>
+                            <p class="text-2xl font-semibold text-gray-900" data-bind="stats.totalUsers">1,247</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Bookings</p>
+                            <p class="text-2xl font-semibold text-gray-900" data-bind="stats.totalBookings">583</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Active Routes</p>
+                            <p class="text-2xl font-semibold text-gray-900" data-bind="stats.activeRoutes">45</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Revenue Today</p>
+                            <p class="text-2xl font-semibold text-gray-900" data-bind="stats.revenueToday">₹2,45,680</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Pricing Configuration -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Global Pricing Configuration</h2>
+                    
+                    <form class="space-y-6" data-implementation="Should emit price:update via Socket.IO when changed">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Fuel Price per Litre (₹)</label>
+                            <div class="relative">
+                                <input type="number" data-mock="true" value="95.50" step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <span class="text-gray-500 text-sm">₹/L</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Base Fare (₹)</label>
+                            <input type="number" data-mock="true" value="1500" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
+                                <input type="number" data-mock="true" value="18" step="0.1" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Operations Fee (%)</label>
+                                <input type="number" data-mock="true" value="8" step="0.1" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Fuel Burn Rate (L/km)</label>
+                            <input type="number" data-mock="true" value="1.62" step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        </div>
+
+                        <button type="button" onclick="updatePricing()" class="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors">
+                            Update Pricing
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Live Activity Feed -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold text-gray-900">Live Activity</h2>
+                        <div class="flex items-center space-x-2 text-sm text-gray-600">
+                            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span>Real-time</span>
+                        </div>
+                    </div>
+
+                    <!-- @FUNCTIONALITY: This activity feed should update in real-time via Socket.IO events -->
+                    <div class="space-y-4 max-h-96 overflow-y-auto">
+                        <!-- Recent booking -->
+                        <div class="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">New booking created</p>
+                                <p class="text-sm text-gray-600">PNR: AC789GH2 • DEL → BOM • ₹4,725</p>
+                                <p class="text-xs text-gray-500">2 minutes ago</p>
+                            </div>
+                        </div>
+
+                        <!-- Route computation -->
+                        <div class="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 9m0 8V9m0 0H9"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Route computed</p>
+                                <p class="text-sm text-gray-600">BLR → HYD → DEL using A* algorithm</p>
+                                <p class="text-xs text-gray-500">5 minutes ago</p>
+                            </div>
+                        </div>
+
+                        <!-- User registration -->
+                        <div class="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">New user registered</p>
+                                <p class="text-sm text-gray-600">priya.sharma@email.com</p>
+                                <p class="text-xs text-gray-500">8 minutes ago</p>
+                            </div>
+                        </div>
+
+                        <!-- Price update -->
+                        <div class="flex items-start space-x-3 p-3 bg-orange-50 rounded-lg">
+                            <div class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900">Fuel price updated</p>
+                                <p class="text-sm text-gray-600">New rate: ₹95.50/L (↑ ₹2.00)</p>
+                                <p class="text-xs text-gray-500">12 minutes ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Airports & Routes Management -->
+            <div class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Airports & Routes</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Airports Table -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Airports</h3>
+                            <button class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                                Add Airport
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <!-- @MAP: airports.map(airport => ( -->
+                                    <tr data-mock="true">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900" data-bind="airport.code">DEL</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600" data-bind="airport.name">Indira Gandhi Intl</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600" data-bind="airport.city">Delhi</td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <button class="text-primary-600 hover:text-primary-700 mr-2">Edit</button>
+                                            <button class="text-red-600 hover:text-red-700">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr data-mock="true">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900">BOM</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">Chhatrapati Shivaji</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">Mumbai</td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <button class="text-primary-600 hover:text-primary-700 mr-2">Edit</button>
+                                            <button class="text-red-600 hover:text-red-700">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr data-mock="true">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900">BLR</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">Kempegowda Intl</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">Bangalore</td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <button class="text-primary-600 hover:text-primary-700 mr-2">Edit</button>
+                                            <button class="text-red-600 hover:text-red-700">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <!-- @END_MAP )) -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Routes Table -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Routes</h3>
+                            <button class="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                                Add Route
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distance</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <!-- @MAP: routes.map(route => ( -->
+                                    <tr data-mock="true">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900" data-bind="route.from">DEL</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600" data-bind="route.to">BOM</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600" data-bind="route.distance">1,138 km</td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <button class="text-primary-600 hover:text-primary-700 mr-2">Edit</button>
+                                            <button class="text-red-600 hover:text-red-700">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr data-mock="true">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900">BOM</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">BLR</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">842 km</td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <button class="text-primary-600 hover:text-primary-700 mr-2">Edit</button>
+                                            <button class="text-red-600 hover:text-red-700">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr data-mock="true">
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900">DEL</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">BLR</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">1,739 km</td>
+                                        <td class="px-4 py-3 text-sm">
+                                            <button class="text-primary-600 hover:text-primary-700 mr-2">Edit</button>
+                                            <button class="text-red-600 hover:text-red-700">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <!-- @END_MAP )) -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Page Navigation
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // Show selected page
+            document.getElementById(pageId + '-page').classList.remove('hidden');
+            
+            // Update navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('text-primary-600');
+                link.classList.add('text-gray-700');
+            });
+        }
+
+        // Auth tab switching
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabType = this.dataset.tab;
+                
+                // Update tab styles
+                document.querySelectorAll('.auth-tab').forEach(t => {
+                    t.classList.remove('bg-white', 'text-primary-600', 'shadow-sm');
+                    t.classList.add('text-gray-500');
+                });
+                this.classList.add('bg-white', 'text-primary-600', 'shadow-sm');
+                this.classList.remove('text-gray-500');
+                
+                // Show/hide forms
+                document.querySelectorAll('.auth-form').forEach(form => {
+                    form.classList.add('hidden');
+                });
+                document.getElementById(tabType + '-form').classList.remove('hidden');
+            });
+        });
+
+        // Search functionality
+        function showRouteResults() {
+            document.getElementById('search-results').classList.remove('hidden');
+            
+            // Initialize map
+            setTimeout(() => {
+                initializeMap();
+            }, 100);
+        }
+
+        function showOffers() {
+            showPage('offers');
+        }
+
+        function confirmBooking() {
+            showPage('bookings');
+            // Show success message
+            document.getElementById('booking-success').classList.remove('hidden');
+        }
+
+        // Admin functionality
+        function updatePricing() {
+            // TODO: Implement Socket.IO price:update emission
+            alert('Pricing updated! Real-time updates sent to all clients.');
+        }
+
+        // Map initialization
+        function initializeMap() {
+            if (typeof L !== 'undefined' && document.getElementById('route-map')) {
+                // Sample Indian airports data
+                const airports = [
+                    { code: 'DEL', name: 'Delhi', lat: 28.5562, lon: 77.1000 },
+                    { code: 'BOM', name: 'Mumbai', lat: 19.0896, lon: 72.8656 },
+                    { code: 'BLR', name: 'Bangalore', lat: 12.9716, lon: 77.5946 },
+                    { code: 'HYD', name: 'Hyderabad', lat: 17.2403, lon: 78.4294 },
+                    { code: 'MAA', name: 'Chennai', lat: 13.0827, lon: 80.2707 },
+                    { code: 'CCU', name: 'Kolkata', lat: 22.6547, lon: 88.4467 }
+                ];
+
+                // Initialize map centered on India
+                const map = L.map('route-map').setView([20.5937, 78.9629], 5);
+
+                // Add tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Add airport markers
+                airports.forEach(airport => {
+                    const marker = L.marker([airport.lat, airport.lon]).addTo(map);
+                    marker.bindPopup(`<b>${airport.code}</b><br/>${airport.name}`);
+                });
+
+                // Add route polyline (DEL to BOM)
+                const routeCoords = [
+                    [28.5562, 77.1000], // DEL
+                    [19.0896, 72.8656]  // BOM
+                ];
+                
+                L.polyline(routeCoords, {
+                    color: '#3b82f6',
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(map);
+
+                // Fit map to show the route
+                const group = new L.featureGroup([
+                    L.marker([28.5562, 77.1000]),
+                    L.marker([19.0896, 72.8656])
+                ]);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        // Initialize with search page
+        showPage('search');
+
+        // Real-time updates simulation
+        setInterval(() => {
+            // TODO: Implement actual Socket.IO listeners for real-time updates
+        }, 5000);
+    </script>
+</body>
+</html>

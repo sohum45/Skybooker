@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, setTokens, logout as apiLogout } from "@/lib/api";
+import { api, apiRequest, setTokens, logout as apiLogout } from "@/lib/api";
 import { User, AuthResponse } from "@/types";
 
 export function useAuth() {
@@ -9,22 +9,13 @@ export function useAuth() {
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
       try {
-        const res = await fetch("/api/auth/me", {
-          credentials: "include",
-        });
-        
-        if (res.status === 401) {
-          return null; // User is not authenticated, return null instead of throwing
+        const { data } = await api.get<User>("/auth/me");
+        return data;
+      } catch (e: any) {
+        if (e?.response?.status === 401) {
+          return null; // not authenticated
         }
-        
-        if (!res.ok) {
-          throw new Error(`${res.status}: ${res.statusText}`);
-        }
-        
-        return await res.json();
-      } catch (error) {
-        console.log("Auth check failed:", error);
-        return null;
+        throw e;
       }
     },
     retry: false,

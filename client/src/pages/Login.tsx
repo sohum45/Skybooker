@@ -74,7 +74,7 @@ export default function Login() {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="john.doe@example.com"
-                  className="w-full"
+                  className="placeholder:opacity-60 placeholder:font-normal"
                   data-testid="input-email"
                 />
               </div>
@@ -91,7 +91,7 @@ export default function Login() {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="••••••••"
-                  className="w-full"
+                   className="placeholder:opacity-60 placeholder:font-normal"
                   data-testid="input-password"
                 />
               </div>

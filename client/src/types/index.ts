@@ -12,6 +12,8 @@ export interface RouteSegment {
   from: string;
   to: string;
   distanceKm: number;
+  algorithm?: string; // Optional algorithm identifier
+  distance?: number; // Alternative property name for compatibility
 }
 
 export interface RouteResult {
@@ -73,4 +75,11 @@ export interface AuthResponse {
 export interface WebSocketMessage {
   type: "price:update" | "route:recomputed" | "booking:created";
   data: any;
+}
+
+// Additional types for the quote API response
+export interface QuoteResponse {
+  route: RouteResult;
+  offers: Offer[];
+  config: PriceConfig;
 }

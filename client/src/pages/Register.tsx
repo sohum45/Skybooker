@@ -98,7 +98,7 @@ export default function Register() {
                   value={formData.name}
                   onChange={handleInputChange}
                   placeholder="John Doe"
-                  className="w-full"
+                   className="placeholder:opacity-60 placeholder:font-normal"
                   data-testid="input-name"
                 />
               </div>
@@ -132,7 +132,7 @@ export default function Register() {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="••••••••"
-                  className="w-full"
+                   className="placeholder:opacity-60 placeholder:font-normal"
                   data-testid="input-password"
                 />
               </div>
@@ -149,7 +149,7 @@ export default function Register() {
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   placeholder="••••••••"
-                  className="w-full"
+                   className="placeholder:opacity-60 placeholder:font-normal"
                   data-testid="input-confirm-password"
                 />
               </div>
